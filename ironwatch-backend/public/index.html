@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>IRONWATCH — Fleet & Workshop Command</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --steel-950:#14181c;
+  --steel-900:#1b2126;
+  --steel-800:#232a30;
+  --steel-700:#2d363d;
+  --steel-600:#3c474f;
+  --steel-line:#3a444c;
+  --paper:#e9e6df;
+  --paper-dim:#9aa4ab;
+  --safety-orange:#f2762e;
+  --safety-orange-dim:#c25f24;
+  --diesel-green:#4c9a6a;
+  --warn-red:#d6544a;
+  --amber:#e8b23e;
+  --radius:3px;
+  --font-display:'Oswald', sans-serif;
+  --font-body:'Inter', sans-serif;
+  --font-mono:'IBM Plex Mono', monospace;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{
+  background:var(--steel-950);
+  color:var(--paper);
+  font-family:var(--font-body);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+::selection{background:var(--safety-orange); color:var(--steel-950);}
+
+/* ---------- LOGIN ---------- */
+#login-screen{
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  background:
+    repeating-linear-gradient(135deg, rgba(242,118,46,0.04) 0px, rgba(242,118,46,0.04) 2px, transparent 2px, transparent 22px),
+    var(--steel-950);
+  padding:20px;
+}
+.login-box{
+  width:380px; max-width:100%;
+  background:var(--steel-900);
+  border:1px solid var(--steel-line);
+  border-top:4px solid var(--safety-orange);
+  padding:36px 32px 28px;
+}
+.login-brand{font-family:var(--font-display); font-size:13px; letter-spacing:4px; color:var(--safety-orange); text-transform:uppercase; margin-bottom:6px;}
+.login-title{font-family:var(--font-display); font-size:28px; font-weight:600; letter-spacing:0.5px; margin-bottom:4px;}
+.login-sub{color:var(--paper-dim); font-size:13px; margin-bottom:28px;}
+.field{margin-bottom:16px;}
+.field label{display:block; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:var(--paper-dim); margin-bottom:6px;}
+.field input, .field select, .field textarea{
+  width:100%; background:var(--steel-800); border:1px solid var(--steel-line); color:var(--paper);
+  padding:11px 12px; font-family:var(--font-mono); font-size:14px; border-radius:var(--radius);
+  outline:none;
+}
+.field input:focus, .field select:focus, .field textarea:focus{border-color:var(--safety-orange);}
+.btn{
+  padding:12px; background:var(--safety-orange); color:var(--steel-950); border:none;
+  font-family:var(--font-display); font-size:14px; letter-spacing:1.5px; text-transform:uppercase; font-weight:600;
+  cursor:pointer; border-radius:var(--radius); transition:background .15s;
+}
+.btn.full{width:100%;}
+.btn:hover{background:var(--amber);}
+.btn:focus-visible{outline:2px solid var(--paper);}
+.btn.ghost{background:transparent; border:1px solid var(--steel-line); color:var(--paper-dim);}
+.btn.ghost:hover{border-color:var(--paper-dim); color:var(--paper); background:var(--steel-800);}
+.btn.small-btn{padding:8px 14px; font-size:11.5px; letter-spacing:1px;}
+.login-hint{margin-top:18px; font-size:11.5px; color:var(--paper-dim); line-height:1.6; border-top:1px dashed var(--steel-line); padding-top:14px;}
+.login-hint b{color:var(--paper);}
+.login-error{color:var(--warn-red); font-size:12.5px; margin-top:-6px; margin-bottom:14px; display:none;}
+
+/* ---------- APP SHELL ---------- */
+#app{display:none; min-height:100vh; grid-template-columns:230px 1fr;}
+#app.active{display:grid;}
+#sidebar{
+  background:var(--steel-900); border-right:1px solid var(--steel-line);
+  display:flex; flex-direction:column; height:100vh; position:sticky; top:0;
+}
+.brand-block{padding:20px 18px 16px; border-bottom:1px solid var(--steel-line);}
+.brand-eyebrow{font-size:10px; letter-spacing:3px; color:var(--safety-orange); font-family:var(--font-display); margin-bottom:2px;}
+.brand-name{font-family:var(--font-display); font-size:20px; font-weight:600; letter-spacing:0.5px;}
+.brand-status{display:flex; align-items:center; gap:6px; margin-top:8px; font-size:11px; color:var(--diesel-green); font-family:var(--font-mono);}
+.dot-live{width:6px; height:6px; border-radius:50%; background:var(--diesel-green); box-shadow:0 0 0 0 rgba(76,154,106,.6); animation:pulse 2s infinite;}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(76,154,106,.5);}70%{box-shadow:0 0 0 6px rgba(76,154,106,0);}100%{box-shadow:0 0 0 0 rgba(76,154,106,0);}}
+
+nav{flex:1; overflow-y:auto; padding:10px 0;}
+.nav-group-label{font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--paper-dim); padding:14px 18px 6px;}
+.nav-item{
+  display:flex; align-items:center; gap:10px; padding:9px 18px; cursor:pointer; font-size:13px;
+  color:var(--paper-dim); border-left:3px solid transparent; transition:all .12s;
+}
+.nav-item:hover{color:var(--paper); background:var(--steel-800);}
+.nav-item.active{color:var(--paper); background:var(--steel-800); border-left-color:var(--safety-orange);}
+.nav-icon{width:16px; text-align:center; opacity:.8; font-size:13px;}
+
+#sidebar-footer{padding:14px 18px; border-top:1px solid var(--steel-line); font-size:11px; color:var(--paper-dim);}
+#logout-btn{background:none; border:1px solid var(--steel-line); color:var(--paper-dim); padding:7px 10px; font-size:11px; border-radius:var(--radius); cursor:pointer; width:100%; margin-top:8px; letter-spacing:1px;}
+#logout-btn:hover{border-color:var(--warn-red); color:var(--warn-red);}
+
+#main{overflow-y:auto; height:100vh;}
+#topbar{
+  position:sticky; top:0; z-index:5; background:var(--steel-950)ee; backdrop-filter:blur(6px);
+  border-bottom:1px solid var(--steel-line); padding:14px 26px; display:flex; align-items:center; justify-content:space-between;
+}
+#page-title{font-family:var(--font-display); font-size:22px; letter-spacing:0.5px;}
+#page-sub{color:var(--paper-dim); font-size:12.5px; margin-top:2px;}
+.topbar-right{display:flex; align-items:center; gap:14px;}
+.clock{font-family:var(--font-mono); font-size:12.5px; color:var(--paper-dim);}
+#save-indicator{font-size:11px; font-family:var(--font-mono); color:var(--paper-dim); display:flex; align-items:center; gap:5px;}
+#save-indicator.saved{color:var(--diesel-green);}
+
+#content{padding:22px 26px 60px;}
+.section{display:none;}
+.section.active{display:block; animation:fadein .25s ease;}
+@keyframes fadein{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+/* ---------- CARDS / GRID ---------- */
+.grid{display:grid; gap:14px;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+@media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,1fr);} .grid-3{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:700px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr;} #app.active{grid-template-columns:1fr;} #sidebar{position:relative; height:auto;}}
+
+.card{background:var(--steel-900); border:1px solid var(--steel-line); border-radius:var(--radius); padding:16px 18px;}
+.stat-card .stat-label{font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--paper-dim); margin-bottom:8px;}
+.stat-card .stat-value{font-family:var(--font-display); font-size:32px; font-weight:600;}
+.stat-card .stat-value.orange{color:var(--safety-orange);}
+.stat-card .stat-value.green{color:var(--diesel-green);}
+.stat-card .stat-value.red{color:var(--warn-red);}
+.stat-card .stat-delta{font-size:11.5px; color:var(--paper-dim); margin-top:6px; font-family:var(--font-mono);}
+
+.panel-title{font-family:var(--font-display); font-size:15px; letter-spacing:.5px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;}
+.panel-title span.tag{font-size:10px; font-family:var(--font-mono); background:var(--steel-800); color:var(--paper-dim); padding:2px 8px; border-radius:10px;}
+
+table{width:100%; border-collapse:collapse; font-size:12.5px;}
+th{text-align:left; color:var(--paper-dim); font-weight:500; text-transform:uppercase; font-size:10.5px; letter-spacing:1px; padding:8px 10px; border-bottom:1px solid var(--steel-line);}
+td{padding:9px 10px; border-bottom:1px solid var(--steel-800); font-family:var(--font-mono); font-size:12px;}
+tr:hover td{background:var(--steel-800);}
+
+.badge{display:inline-block; padding:2px 8px; border-radius:10px; font-size:10.5px; font-family:var(--font-body); font-weight:600; letter-spacing:.3px;}
+.badge.green{background:rgba(76,154,106,.15); color:var(--diesel-green);}
+.badge.orange{background:rgba(242,118,46,.15); color:var(--safety-orange);}
+.badge.red{background:rgba(214,84,74,.15); color:var(--warn-red);}
+.badge.amber{background:rgba(232,178,62,.15); color:var(--amber);}
+.badge.gray{background:var(--steel-800); color:var(--paper-dim);}
+
+.search-input, select.filter{
+  background:var(--steel-800); border:1px solid var(--steel-line); color:var(--paper); padding:8px 10px;
+  font-family:var(--font-mono); font-size:12.5px; border-radius:var(--radius); outline:none;
+}
+.search-input:focus, select.filter:focus{border-color:var(--safety-orange);}
+.toolbar{display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; align-items:center; justify-content:space-between;}
+.toolbar-left{display:flex; gap:10px; flex-wrap:wrap;}
+
+/* row action buttons */
+.row-actions{display:flex; gap:6px;}
+.icon-btn{
+  background:var(--steel-800); border:1px solid var(--steel-line); color:var(--paper-dim); cursor:pointer;
+  padding:4px 8px; border-radius:var(--radius); font-size:11px; font-family:var(--font-body);
+}
+.icon-btn:hover{border-color:var(--safety-orange); color:var(--paper);}
+.icon-btn.danger:hover{border-color:var(--warn-red); color:var(--warn-red);}
+
+/* profile cards */
+.profile-card{display:flex; gap:12px; align-items:flex-start; position:relative;}
+.avatar{
+  width:42px; height:42px; border-radius:50%; background:var(--steel-700); display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-size:15px; color:var(--safety-orange); flex-shrink:0; border:1px solid var(--steel-line);
+}
+.profile-name{font-weight:600; font-size:13.5px;}
+.profile-role{font-size:11px; color:var(--paper-dim); margin-bottom:4px;}
+.profile-meta{font-size:11px; color:var(--paper-dim); font-family:var(--font-mono); line-height:1.7;}
+.profile-actions{position:absolute; top:0; right:0; display:flex; gap:5px;}
+
+/* live feed */
+.feed-item{display:flex; gap:12px; padding:11px 0; border-bottom:1px solid var(--steel-800); align-items:flex-start;}
+.feed-item:last-child{border-bottom:none;}
+.feed-time{font-family:var(--font-mono); font-size:10.5px; color:var(--paper-dim); width:52px; flex-shrink:0; padding-top:2px;}
+.feed-dot{width:8px; height:8px; border-radius:50%; margin-top:5px; flex-shrink:0;}
+.feed-dot.red{background:var(--warn-red); box-shadow:0 0 6px rgba(214,84,74,.6);}
+.feed-dot.orange{background:var(--safety-orange); box-shadow:0 0 6px rgba(242,118,46,.6);}
+.feed-dot.green{background:var(--diesel-green); box-shadow:0 0 6px rgba(76,154,106,.6);}
+.feed-text{font-size:12.5px; line-height:1.5; flex:1;}
+.feed-text b{color:var(--paper);}
+.feed-sub{font-size:11px; color:var(--paper-dim); margin-top:2px;}
+.feed-del{margin-left:auto; flex-shrink:0;}
+
+/* map */
+#map-wrap{position:relative; background:var(--steel-900); border:1px solid var(--steel-line); border-radius:var(--radius); overflow:hidden;}
+#map-svg{width:100%; height:460px; display:block;}
+.map-pin-label{font-family:var(--font-mono); font-size:9px; fill:var(--paper); pointer-events:none;}
+.map-legend{position:absolute; bottom:12px; left:12px; background:var(--steel-900)ee; border:1px solid var(--steel-line); padding:8px 12px; font-size:11px; border-radius:var(--radius);}
+.legend-row{display:flex; align-items:center; gap:6px; margin:3px 0;}
+.legend-dot{width:8px; height:8px; border-radius:50%;}
+
+/* parts layout */
+.warehouse-grid{display:grid; grid-template-columns:repeat(8,1fr); gap:6px;}
+.bay{
+  background:var(--steel-800); border:1px solid var(--steel-line); border-radius:var(--radius); padding:10px 6px;
+  text-align:center; cursor:pointer; transition:transform .1s; position:relative;
+}
+.bay:hover{transform:translateY(-2px); border-color:var(--safety-orange);}
+.bay-code{font-family:var(--font-mono); font-size:11px; color:var(--paper-dim);}
+.bay-level{font-family:var(--font-display); font-size:15px; margin-top:4px;}
+.bay.low .bay-level{color:var(--warn-red);}
+.bay.mid .bay-level{color:var(--amber);}
+.bay.ok .bay-level{color:var(--diesel-green);}
+.bay-del{position:absolute; top:3px; right:4px; font-size:10px; color:var(--paper-dim); background:none; border:none; cursor:pointer;}
+.bay-del:hover{color:var(--warn-red);}
+
+/* fleet select */
+.machine-tile{
+  border:1px solid var(--steel-line); background:var(--steel-900); border-radius:var(--radius); padding:14px; cursor:pointer;
+  transition:border-color .12s; position:relative;
+}
+.machine-tile:hover, .machine-tile.selected{border-color:var(--safety-orange);}
+.machine-id{font-family:var(--font-display); font-size:16px;}
+.machine-type{font-size:11px; color:var(--paper-dim); margin-bottom:8px;}
+.machine-row{display:flex; justify-content:space-between; font-size:11px; font-family:var(--font-mono); color:var(--paper-dim); margin-top:4px;}
+.machine-actions{position:absolute; top:10px; right:10px; display:flex; gap:5px;}
+
+/* AI assistant */
+#ai-panel{
+  position:fixed; bottom:22px; right:22px; z-index:50; display:flex; flex-direction:column; align-items:flex-end; gap:10px;
+}
+#ai-toggle{
+  width:56px; height:56px; border-radius:50%; background:var(--safety-orange); border:none; cursor:pointer;
+  font-size:22px; box-shadow:0 4px 18px rgba(0,0,0,.4); color:var(--steel-950);
+}
+#ai-toggle.listening{animation:mic-pulse 1.2s infinite;}
+@keyframes mic-pulse{0%{box-shadow:0 0 0 0 rgba(242,118,46,.6);}70%{box-shadow:0 0 0 16px rgba(242,118,46,0);}100%{box-shadow:0 0 0 0 rgba(242,118,46,0);}}
+#ai-chat{
+  width:320px; max-height:420px; background:var(--steel-900); border:1px solid var(--steel-line); border-top:3px solid var(--safety-orange);
+  border-radius:var(--radius); display:none; flex-direction:column; overflow:hidden;
+}
+#ai-chat.open{display:flex;}
+#ai-chat-head{padding:12px 14px; border-bottom:1px solid var(--steel-line); font-family:var(--font-display); font-size:13px; letter-spacing:.5px; display:flex; justify-content:space-between; align-items:center;}
+#ai-chat-log{flex:1; overflow-y:auto; padding:12px 14px; font-size:12.5px; display:flex; flex-direction:column; gap:10px; max-height:280px;}
+.msg{max-width:88%; padding:8px 10px; border-radius:6px; line-height:1.5;}
+.msg.user{align-self:flex-end; background:var(--steel-700);}
+.msg.ai{align-self:flex-start; background:var(--steel-800); border:1px solid var(--steel-line);}
+#ai-chat-foot{padding:10px 12px; border-top:1px solid var(--steel-line); font-size:10.5px; color:var(--paper-dim);}
+#ai-mic-status{font-size:10.5px; color:var(--paper-dim); text-align:right;}
+
+.scroll-thin::-webkit-scrollbar{width:7px;}
+.scroll-thin::-webkit-scrollbar-thumb{background:var(--steel-600); border-radius:4px;}
+
+.small-note{font-size:11px; color:var(--paper-dim); margin-top:10px; line-height:1.6;}
+
+/* modal */
+#modal-overlay{
+  position:fixed; inset:0; background:rgba(10,12,14,.7); z-index:100; display:none; align-items:center; justify-content:center; padding:20px;
+}
+#modal-overlay.open{display:flex;}
+#modal-box{
+  width:440px; max-width:100%; max-height:88vh; overflow-y:auto; background:var(--steel-900); border:1px solid var(--steel-line);
+  border-top:4px solid var(--safety-orange); border-radius:var(--radius); padding:24px;
+}
+#modal-title{font-family:var(--font-display); font-size:18px; margin-bottom:18px;}
+#modal-form .field{margin-bottom:14px;}
+#modal-actions{display:flex; gap:10px; margin-top:20px;}
+#modal-actions .btn{flex:1;}
+
+/* persistence banner */
+#persist-banner{
+  display:none; background:rgba(232,178,62,.1); border:1px solid var(--amber); color:var(--amber);
+  font-size:11.5px; padding:9px 14px; border-radius:var(--radius); margin-bottom:16px; line-height:1.5;
+}
+#persist-banner.show{display:block;}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-brand">IRONWATCH SYSTEMS</div>
+    <div class="login-title">Workshop Command</div>
+    <div class="login-sub">Earthmoving fleet & workshop control center</div>
+    <div class="field">
+      <label>Username</label>
+      <input id="login-user" type="text" autocomplete="username" placeholder="admin">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input id="login-pass" type="password" autocomplete="current-password" placeholder="••••••••">
+    </div>
+    <div class="login-error" id="login-error">Incorrect username or password.</div>
+    <button class="btn full" id="login-btn">Sign In</button>
+    <div class="login-hint">
+      Signs in against the IronWatch backend API. Use the admin account or a viewer logon profile
+      created on the server (see the backend's README for default credentials and how to change them).
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <aside id="sidebar">
+    <div class="brand-block">
+      <div class="brand-eyebrow">IRONWATCH</div>
+      <div class="brand-name">Workshop Command</div>
+      <div class="brand-status"><span class="dot-live"></span> LIVE — <span id="active-count">–</span> machines active</div>
+    </div>
+    <nav id="nav" class="scroll-thin"></nav>
+    <div id="sidebar-footer">
+      Signed in as <b id="footer-username" style="color:var(--paper)">admin</b><br>
+      <span id="footer-role" style="font-size:10px; letter-spacing:1px; text-transform:uppercase;"></span>
+      <button id="logout-btn">Sign Out</button>
+    </div>
+  </aside>
+
+  <div id="main">
+    <div id="topbar">
+      <div>
+        <div id="page-title">Overview</div>
+        <div id="page-sub">Fleet & workshop snapshot</div>
+      </div>
+      <div class="topbar-right">
+        <div id="save-indicator">●&nbsp;ready</div>
+        <div class="clock" id="clock"></div>
+      </div>
+    </div>
+    <div id="content" class="scroll-thin"></div>
+  </div>
+</div>
+
+<!-- ============ MODAL ============ -->
+<div id="modal-overlay">
+  <div id="modal-box">
+    <div id="modal-title">Add Record</div>
+    <div id="modal-form"></div>
+    <div id="modal-actions">
+      <button class="btn ghost" id="modal-cancel">Cancel</button>
+      <button class="btn" id="modal-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ AI ASSISTANT ============ -->
+<div id="ai-panel">
+  <div id="ai-chat">
+    <div id="ai-chat-head">
+      <span>⚙ IRONWATCH AI</span>
+      <span id="ai-mic-status">idle</span>
+    </div>
+    <div id="ai-chat-log" class="scroll-thin"></div>
+    <div id="ai-chat-foot">Try: "show fleet map", "open parts eta", "how many breakdowns today"</div>
+  </div>
+  <button id="ai-toggle" title="Talk to IRONWATCH AI">🎙</button>
+</div>
+
+<script>
+/* ============================================================
+   BACKEND CONNECTION
+   Point this at your running IronWatch backend (see backend/README.md).
+   ============================================================ */
+const API_BASE = (() => {
+  // If this file is served BY the backend itself (same origin), use a relative path.
+  // Otherwise default to localhost:5000 for local development.
+  if (location.protocol === 'http:' || location.protocol === 'https:') {
+    if (['5000'].includes(location.port)) return '/api';
+  }
+  return 'http://localhost:5000/api';
+})();
+
+let authToken = null;
+
+async function api(path, { method = 'GET', body, auth = true } = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (auth && authToken) headers.Authorization = `Bearer ${authToken}`;
+  let res;
+  try {
+    res = await fetch(API_BASE + path, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch (networkErr) {
+    const e = new Error('Could not reach the IronWatch backend. Is the server running at ' + API_BASE + '?');
+    e.isNetworkError = true;
+    throw e;
+  }
+  let data = null;
+  try { data = await res.json(); } catch (_) { /* no body */ }
+  if (!res.ok) {
+    const e = new Error((data && data.error) || `Request failed (${res.status})`);
+    e.status = res.status;
+    throw e;
+  }
+  return data;
+}
+
+/* ============================================================
+   DEFAULT DATA
+   ============================================================ */
+let uidCounter = 1;
+function uid(){ return 'r' + (uidCounter++); }
+function withIds(arr){ return arr.map(o => ({...o, _id: uid()})); }
+
+function defaultDb(){
+  return {
+    machines: withIds([
+      {id:'EX-204', type:'Excavator · CAT 336', status:'Active', hours:9124, dest:'Site Bravo — Pit 3', operator:'T. Ngcobo', fuel:78},
+      {id:'DZ-112', type:'Dozer · Komatsu D65', status:'Active', hours:6210, dest:'Site Alpha — Haul Rd', operator:'M. van Wyk', fuel:54},
+      {id:'HL-330', type:'Haul Truck · Cat 773', status:'In Repair', hours:14802, dest:'Workshop Bay 2', operator:'—', fuel:12},
+      {id:'GR-018', type:'Grader · Cat 140M', status:'Active', hours:5310, dest:'Site Charlie — Access Rd', operator:'S. Dlamini', fuel:61},
+      {id:'LD-402', type:'Wheel Loader · Volvo L120', status:'Idle', hours:8890, dest:'Yard — Parked', operator:'—', fuel:90},
+      {id:'EX-207', type:'Excavator · Komatsu PC210', status:'Active', hours:3012, dest:'Site Bravo — Pit 1', operator:'J. Botha', fuel:44},
+      {id:'DT-501', type:'Dump Truck · CAT 745', status:'Breakdown', hours:11290, dest:'Site Alpha — Ramp 4', operator:'K. Mokoena', fuel:8},
+      {id:'DZ-115', type:'Dozer · Cat D8T', status:'Active', hours:7654, dest:'Site Charlie — Bench 2', operator:'R. Naidoo', fuel:67},
+    ]),
+    operators: withIds([
+      {name:'T. Ngcobo', role:'Excavator Operator', machine:'EX-204', shift:'Day', license:'EO-3312', years:6},
+      {name:'M. van Wyk', role:'Dozer Operator', machine:'DZ-112', shift:'Day', license:'EO-2201', years:11},
+      {name:'S. Dlamini', role:'Grader Operator', machine:'GR-018', shift:'Night', license:'EO-4410', years:4},
+      {name:'J. Botha', role:'Excavator Operator', machine:'EX-207', shift:'Day', license:'EO-3399', years:3},
+      {name:'K. Mokoena', role:'Haul Truck Driver', machine:'DT-501', shift:'Night', license:'EO-1187', years:8},
+      {name:'R. Naidoo', role:'Dozer Operator', machine:'DZ-115', shift:'Day', license:'EO-2790', years:9},
+    ]),
+    mechanics: withIds([
+      {name:'P. Fourie', spec:'Hydraulics', jobs:'HL-330 brake system', status:'On Job'},
+      {name:'A. Kekana', spec:'Engine & Drivetrain', jobs:'DT-501 field breakdown', status:'Dispatched'},
+      {name:'L. Steyn', spec:'Electrical', jobs:'GR-018 sensor fault (queued)', status:'Available'},
+      {name:'B. Mahlangu', spec:'Undercarriage', jobs:'LD-402 track inspection', status:'On Job'},
+      {name:'C. Reyneke', spec:'General Diesel', jobs:'', status:'Available'},
+    ]),
+    repairs: withIds([
+      {machine:'HL-330', issue:'Brake accumulator failure', bay:'Bay 2', mechanic:'P. Fourie', status:'In Progress', priority:'High', eta:'Today 16:30'},
+      {machine:'GR-018', issue:'Blade angle sensor fault', bay:'Bay 4', mechanic:'L. Steyn', status:'Queued', priority:'Medium', eta:'Tomorrow 09:00'},
+      {machine:'LD-402', issue:'Track tension inspection', bay:'Bay 1', mechanic:'B. Mahlangu', status:'In Progress', priority:'Low', eta:'Today 14:00'},
+      {machine:'EX-207', issue:'Hydraulic hose weep, boom cyl', bay:'Bay 3', mechanic:'—', status:'Awaiting Parts', priority:'Medium', eta:'Fri 11:00'},
+      {machine:'DT-501', issue:'Engine overheat — field breakdown', bay:'Field / Site Alpha', mechanic:'A. Kekana', status:'Dispatched', priority:'Critical', eta:'ETA on site 40 min'},
+    ]),
+    partsEta: withIds([
+      {part:'Hydraulic hose assy — boom cyl', machine:'EX-207', supplier:'Barloworld Cat', eta:'Fri, 2 days', status:'In Transit'},
+      {part:'Brake accumulator kit', machine:'HL-330', supplier:'Cat Parts Dist.', eta:'Today, 4 hrs', status:'Dispatched'},
+      {part:'Blade angle sensor', machine:'GR-018', supplier:'Komatsu SA', eta:'Mon, 5 days', status:'Ordered'},
+      {part:'Track shoe set (x2)', machine:'LD-402', supplier:'Volvo CE Parts', eta:'In Stock', status:'Available'},
+      {part:'Radiator core', machine:'DT-501', supplier:'Cat Parts Dist.', eta:'Wed, 3 days', status:'Ordered'},
+    ]),
+    purchaseHistory: withIds([
+      {asset:'EX-204', desc:'CAT 336 Excavator', date:'2022-03-11', vendor:'Barloworld Equipment', value:'R 4,820,000'},
+      {asset:'DZ-112', desc:'Komatsu D65 Dozer', date:'2021-08-02', vendor:'Komatsu SA', value:'R 3,150,000'},
+      {asset:'HL-330', desc:'Cat 773 Haul Truck', date:'2020-11-19', vendor:'Barloworld Equipment', value:'R 6,940,000'},
+      {asset:'GR-018', desc:'Cat 140M Grader', date:'2023-01-27', vendor:'Barloworld Equipment', value:'R 2,410,000'},
+      {asset:'LD-402', desc:'Volvo L120 Loader', date:'2019-06-05', vendor:'Volvo CE Dealer', value:'R 1,980,000'},
+      {asset:'DT-501', desc:'Cat 745 Dump Truck', date:'2022-09-30', vendor:'Barloworld Equipment', value:'R 5,330,000'},
+      {asset:'DZ-115', desc:'Cat D8T Dozer', date:'2021-02-14', vendor:'Barloworld Equipment', value:'R 5,870,000'},
+    ]),
+    partsLayout: withIds([
+      {code:'A1', label:'Filters', level:'ok'}, {code:'A2', label:'Hydraulic Hose', level:'mid'},
+      {code:'A3', label:'Belts', level:'ok'}, {code:'A4', label:'Undercarriage', level:'low'},
+      {code:'B1', label:'Engine Parts', level:'ok'}, {code:'B2', label:'Electrical', level:'mid'},
+      {code:'B3', label:'Bearings', level:'ok'}, {code:'B4', label:'Seals & Gaskets', level:'low'},
+      {code:'C1', label:'Brake Components', level:'mid'}, {code:'C2', label:'Tyres & Tracks', level:'ok'},
+      {code:'C3', label:'Fluids & Lube', level:'ok'}, {code:'C4', label:'Cabin/Glass', level:'ok'},
+      {code:'D1', label:'Fasteners', level:'ok'}, {code:'D2', label:'Sensors', level:'low'},
+      {code:'D3', label:'Radiators', level:'mid'}, {code:'D4', label:'PPE & Consumables', level:'ok'},
+    ]),
+    logons: withIds([
+      {user:'admin', role:'System Administrator', access:'Full Access', last:'Active now'},
+      {user:'p.fourie', role:'Mechanic — Hydraulics', access:'Workshop', last:'Today 09:04'},
+      {user:'a.kekana', role:'Mechanic — Engine', access:'Workshop + Field', last:'Today 08:15'},
+      {user:'t.ngcobo', role:'Operator — Excavator', access:'Operator App', last:'Today 06:40'},
+      {user:'foreman.site.a', role:'Site Foreman', access:'Fleet + Repairs (view)', last:'Yesterday 17:20'},
+    ]),
+    fieldFeed: withIds([
+      {t:'08:12', color:'red', text:'<b>DT-501</b> reported engine overheat at Site Alpha — Ramp 4', sub:'Mechanic A. Kekana dispatched'},
+      {t:'07:44', color:'orange', text:'<b>GR-018</b> blade sensor intermittent fault flagged by operator', sub:'Logged for workshop queue'},
+    ]),
+    workshopFeed: withIds([
+      {t:'09:02', color:'orange', text:'<b>HL-330</b> brake accumulator removed for inspection — Bay 2', sub:'P. Fourie'},
+      {t:'08:20', color:'green', text:'<b>LD-402</b> track tension check completed, within spec', sub:'B. Mahlangu'},
+    ]),
+  };
+}
+
+let db = defaultDb();
+
+const machinePins = [
+  {id:'EX-204', x:180, y:120, status:'active'}, {id:'DZ-112', x:260, y:200, status:'active'},
+  {id:'GR-018', x:340, y:150, status:'active'}, {id:'EX-207', x:150, y:260, status:'active'},
+  {id:'DZ-115', x:400, y:260, status:'active'}, {id:'HL-330', x:520, y:340, status:'workshop'},
+  {id:'LD-402', x:500, y:320, status:'idle'}, {id:'DT-501', x:230, y:320, status:'breakdown'},
+];
+
+/* ============================================================
+   PERSISTENCE — backed by the real IronWatch backend (SQLite via API)
+   ============================================================ */
+let storageAvailable = true; // true once we've successfully talked to the backend
+async function loadDb(){
+  try{
+    const parsed = await api('/state');
+    // sanity check + backfill any missing categories from defaults (shouldn't
+    // normally happen, but keeps the UI resilient if the backend adds new
+    // collections later)
+    const def = defaultDb();
+    Object.keys(def).forEach(k=>{ if(!parsed[k]) parsed[k] = def[k]; });
+    let maxN = 0;
+    Object.values(parsed).forEach(list=>{
+      if(Array.isArray(list)) list.forEach(it=>{
+        if(!it._id) it._id = uid();
+      });
+    });
+    db = parsed;
+    storageAvailable = true;
+  }catch(e){
+    console.error('loadDb failed:', e.message);
+    storageAvailable = false;
+    db = defaultDb();
+  }
+}
+let saveTimer = null;
+async function saveDb(){
+  const ind = document.getElementById('save-indicator');
+  if(!isAdmin){ return; } // viewers never write
+  if(ind){ ind.textContent = '●  saving…'; ind.classList.remove('saved'); }
+  try{
+    db = await api('/state', { method:'PUT', body: db });
+    storageAvailable = true;
+    if(ind){ ind.textContent = '●  saved'; ind.classList.add('saved'); }
+  }catch(e){
+    console.error('saveDb failed:', e.message);
+    storageAvailable = false;
+    if(ind){ ind.textContent = '●  save failed'; ind.classList.remove('saved'); }
+  }
+}
+function markDirty(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveDb, 400);
+}
+
+/* ============================================================
+   AUTH — real login against the backend (JWT), no client-side credentials
+   ============================================================ */
+let isAdmin = true;
+let currentUsername = 'admin';
+let dbLoaded = false;
+
+document.getElementById('login-btn').addEventListener('click', doLogin);
+document.getElementById('login-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+
+async function doLogin(){
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+
+  if(!u || !p){ err.textContent = 'Enter a username and password.'; err.style.display='block'; return; }
+
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try{
+    const result = await api('/auth/login', { method:'POST', auth:false, body:{ username:u, password:p } });
+    authToken = result.token;
+    isAdmin = result.user.role === 'admin';
+    currentUsername = result.user.username;
+
+    if(!dbLoaded){ await loadDb(); dbLoaded = true; }
+
+    err.style.display='none';
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').classList.add('active');
+    initApp();
+  }catch(e){
+    err.textContent = e.isNetworkError
+      ? e.message
+      : (e.status === 401 ? 'Incorrect username or password.' : e.message);
+    err.style.display='block';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+}
+document.getElementById('logout-btn').addEventListener('click', ()=>{
+  authToken = null;
+  dbLoaded = false;
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-user').value='';
+  document.getElementById('login-pass').value='';
+});
+
+/* ============================================================
+   SCHEMAS (drive generic CRUD forms + tables)
+   ============================================================ */
+const schemas = {
+  machines: {label:'Machine', idField:'id', fields:[
+    {key:'id', label:'Machine ID'}, {key:'type', label:'Type / Model'},
+    {key:'status', label:'Status', type:'select', options:['Active','In Repair','Breakdown','Idle']},
+    {key:'hours', label:'Active Hours', type:'number'}, {key:'dest', label:'Destination'},
+    {key:'operator', label:'Operator'}, {key:'fuel', label:'Fuel %', type:'number'},
+  ]},
+  operators: {label:'Operator', idField:'name', fields:[
+    {key:'name', label:'Name'}, {key:'role', label:'Role'}, {key:'machine', label:'Assigned Machine'},
+    {key:'shift', label:'Shift', type:'select', options:['Day','Night']},
+    {key:'license', label:'License No.'}, {key:'years', label:'Years Experience', type:'number'},
+  ]},
+  mechanics: {label:'Mechanic', idField:'name', fields:[
+    {key:'name', label:'Name'}, {key:'spec', label:'Specialty'},
+    {key:'status', label:'Status', type:'select', options:['On Job','Dispatched','Available']},
+    {key:'jobs', label:'Assigned Job(s)'},
+  ]},
+  repairs: {label:'Repair Job', idField:'machine', fields:[
+    {key:'machine', label:'Machine'}, {key:'issue', label:'Issue'}, {key:'bay', label:'Bay / Location'},
+    {key:'mechanic', label:'Mechanic'},
+    {key:'status', label:'Status', type:'select', options:['In Progress','Queued','Awaiting Parts','Dispatched']},
+    {key:'priority', label:'Priority', type:'select', options:['Critical','High','Medium','Low']},
+    {key:'eta', label:'ETA / Notes'},
+  ]},
+  partsEta: {label:'Part', idField:'part', fields:[
+    {key:'part', label:'Part Description'}, {key:'machine', label:'For Machine'}, {key:'supplier', label:'Supplier'},
+    {key:'eta', label:'ETA'},
+    {key:'status', label:'Status', type:'select', options:['In Transit','Dispatched','Ordered','Available']},
+  ]},
+  purchaseHistory: {label:'Purchase Record', idField:'asset', fields:[
+    {key:'asset', label:'Asset ID'}, {key:'desc', label:'Description'}, {key:'date', label:'Purchase Date'},
+    {key:'vendor', label:'Vendor'}, {key:'value', label:'Value'},
+  ]},
+  partsLayout: {label:'Warehouse Bay', idField:'code', fields:[
+    {key:'code', label:'Bay Code'}, {key:'label', label:'Contents Label'},
+    {key:'level', label:'Stock Level', type:'select', options:['ok','mid','low']},
+  ]},
+  logons: {label:'System Account', idField:'user', fields:[
+    {key:'user', label:'Username'}, {key:'role', label:'Role'}, {key:'access', label:'Access Level'},
+    {key:'last', label:'Last Login'},
+  ]},
+};
+const feedSchema = {fields:[
+  {key:'text', label:'Event Description'}, {key:'sub', label:'Detail / Sub-line'},
+  {key:'color', label:'Severity', type:'select', options:['red','orange','green']},
+]};
+
+/* ============================================================
+   MODAL (generic add/edit)
+   ============================================================ */
+const modalOverlay = document.getElementById('modal-overlay');
+const modalForm = document.getElementById('modal-form');
+const modalTitleEl = document.getElementById('modal-title');
+let modalCtx = null; // {cat, id, isFeed}
+
+function fieldInput(f, val){
+  const v = (val===undefined||val===null) ? '' : val;
+  if(f.type==='select'){
+    return `<select data-key="${f.key}">${f.options.map(o=>`<option value="${o}" ${o===v?'selected':''}>${o}</option>`).join('')}</select>`;
+  }
+  if(f.type==='number'){
+    return `<input type="number" data-key="${f.key}" value="${v}">`;
+  }
+  return `<input type="text" data-key="${f.key}" value="${String(v).replace(/"/g,'&quot;')}">`;
+}
+
+function openModal(cat, id){
+  if(!isAdmin){ alert('Only the admin account can add or edit records. You are signed in with a view-only logon profile.'); return; }
+  modalCtx = {cat, id};
+  const schema = schemas[cat];
+  const item = id ? db[cat].find(x=>x._id===id) : {};
+  modalTitleEl.textContent = (id ? 'Edit ' : 'Add New ') + schema.label;
+  modalForm.innerHTML = schema.fields.map(f=>`
+    <div class="field"><label>${f.label}</label>${fieldInput(f, item[f.key])}</div>
+  `).join('');
+  modalOverlay.classList.add('open');
+}
+function openFeedModal(feedKey){
+  if(!isAdmin){ alert('Only the admin account can log new events. You are signed in with a view-only logon profile.'); return; }
+  modalCtx = {feedKey};
+  modalTitleEl.textContent = 'Log New Event';
+  modalForm.innerHTML = feedSchema.fields.map(f=>`
+    <div class="field"><label>${f.label}</label>${fieldInput(f, '')}</div>
+  `).join('');
+  modalOverlay.classList.add('open');
+}
+function closeModal(){ modalOverlay.classList.remove('open'); modalCtx=null; }
+document.getElementById('modal-cancel').addEventListener('click', closeModal);
+modalOverlay.addEventListener('click', (e)=>{ if(e.target===modalOverlay) closeModal(); });
+
+document.getElementById('modal-save').addEventListener('click', ()=>{
+  if(!modalCtx || !isAdmin) return;
+  const inputs = modalForm.querySelectorAll('[data-key]');
+  const data = {};
+  inputs.forEach(inp=>{
+    let v = inp.value;
+    if(inp.type==='number') v = v===''? 0 : Number(v);
+    data[inp.dataset.key] = v;
+  });
+  if(modalCtx.feedKey){
+    const now = new Date().toTimeString().slice(0,5);
+    db[modalCtx.feedKey].unshift({t:now, ...data, _id:uid()});
+    db[modalCtx.feedKey] = db[modalCtx.feedKey].slice(0,20);
+  } else {
+    const {cat, id} = modalCtx;
+    if(id){
+      const idx = db[cat].findIndex(x=>x._id===id);
+      db[cat][idx] = {...db[cat][idx], ...data};
+    } else {
+      db[cat].push({...data, _id:uid()});
+    }
+  }
+  closeModal();
+  markDirty();
+  mountContent();
+  showSection(currentSection);
+});
+
+function deleteItem(cat, id){
+  if(!isAdmin){ alert('Only the admin account can delete records. You are signed in with a view-only logon profile.'); return; }
+  if(!confirm('Delete this record? This cannot be undone.')) return;
+  db[cat] = db[cat].filter(x=>x._id!==id);
+  markDirty();
+  mountContent();
+  showSection(currentSection);
+}
+function deleteFeed(feedKey, id){
+  if(!isAdmin){ alert('Only the admin account can remove logged events. You are signed in with a view-only logon profile.'); return; }
+  db[feedKey] = db[feedKey].filter(x=>x._id!==id);
+  markDirty();
+  refreshFeeds();
+}
+
+/* ============================================================
+   NAV / SECTIONS
+   ============================================================ */
+const sectionsNav = [
+  {group:'Overview', items:[{id:'overview', label:'Dashboard Overview', icon:'◆'}]},
+  {group:'People', items:[
+    {id:'logons', label:'Logon Profiles', icon:'◇'}, {id:'operators', label:'Machine Operators', icon:'◇'},
+    {id:'mechanics', label:'Mechanic Profiles', icon:'◇'}, {id:'assignments', label:'Job Assignments', icon:'◇'},
+  ]},
+  {group:'Fleet', items:[
+    {id:'fleet-select', label:'Fleet Selection', icon:'▣'}, {id:'fleet-map', label:'Fleet Map Tracking', icon:'▣'},
+    {id:'destinations', label:'Destination Tracking', icon:'▣'}, {id:'active-hours', label:'Active Hours', icon:'▣'},
+  ]},
+  {group:'Workshop', items:[
+    {id:'repairs', label:'Machine Repairs', icon:'▤'}, {id:'parts-eta', label:'Parts ETA', icon:'▤'},
+    {id:'parts-layout', label:'Parts Layout', icon:'▤'}, {id:'field-feed', label:'Field Breakdowns (Live)', icon:'●'},
+    {id:'workshop-feed', label:'Workshop Repairs (Live)', icon:'●'},
+  ]},
+  {group:'Records', items:[{id:'purchase-history', label:'Purchase History', icon:'▥'}]},
+];
+const pageSubs = {
+  overview:'Fleet & workshop snapshot', logons:'System access accounts — add, edit or remove',
+  operators:'Certified machine operators — add, edit or remove', mechanics:'Workshop mechanic roster — add, edit or remove',
+  assignments:'Who is working on what, right now', 'fleet-select':'Select a machine to inspect — add, edit or remove',
+  'fleet-map':'Simulated live GPS positions', destinations:'Where every machine is headed',
+  'active-hours':'Engine hour meters across the fleet', repairs:'Active and queued repair jobs — add, edit or remove',
+  'parts-eta':'Inbound parts and lead times — add, edit or remove', 'parts-layout':'Warehouse bay stock levels — add, edit or remove',
+  'field-feed':'Live breakdown reports from site — log or remove events', 'workshop-feed':'Live activity inside the workshop — log or remove events',
+  'purchase-history':'Full equipment acquisition record — add, edit or remove',
+};
+let currentSection = 'overview';
+
+function buildNav(){
+  const nav = document.getElementById('nav');
+  nav.innerHTML = sectionsNav.map(g => `
+    <div class="nav-group-label">${g.group}</div>
+    ${g.items.map(it => `<div class="nav-item" data-section="${it.id}"><span class="nav-icon">${it.icon}</span>${it.label}</div>`).join('')}
+  `).join('');
+  nav.querySelectorAll('.nav-item').forEach(el=>{
+    el.addEventListener('click', ()=> showSection(el.dataset.section));
+  });
+}
+function showSection(id){
+  currentSection = id;
+  document.querySelectorAll('.nav-item').forEach(el=> el.classList.toggle('active', el.dataset.section===id));
+  document.querySelectorAll('.section').forEach(el=> el.classList.toggle('active', el.id==='sec-'+id));
+  const labelMap = {}; sectionsNav.forEach(g=>g.items.forEach(it=>labelMap[it.id]=it.label));
+  document.getElementById('page-title').textContent = labelMap[id] || id;
+  document.getElementById('page-sub').textContent = pageSubs[id] || '';
+}
+
+/* ============================================================
+   RENDER HELPERS
+   ============================================================ */
+function statusBadge(status){
+  const map = {Active:'green', 'In Repair':'orange', Breakdown:'red', Idle:'gray', 'In Progress':'orange',
+    Queued:'gray', 'Awaiting Parts':'amber', Dispatched:'red', 'On Job':'orange', Available:'green',
+    'In Transit':'orange', Ordered:'gray', Critical:'red', High:'orange', Medium:'amber', Low:'gray',
+    ok:'green', mid:'amber', low:'red'};
+  const cls = map[status] || 'gray';
+  return `<span class="badge ${cls}">${status}</span>`;
+}
+const statusKeys = new Set(['status','priority','level']);
+
+function genericTable(cat){
+  const schema = schemas[cat];
+  const items = db[cat];
+  const addBtn = isAdmin ? `<div class="toolbar"><div></div><button class="btn small-btn" onclick="openModal('${cat}')">+ Add ${schema.label}</button></div>` : '';
+  const actionsTh = isAdmin ? '<th>Actions</th>' : '';
+  return `
+    ${addBtn}
+    <table><thead><tr>${schema.fields.map(f=>`<th>${f.label}</th>`).join('')}${actionsTh}</tr></thead>
+    <tbody>${items.map(it=>`<tr>${schema.fields.map(f=>{
+      const v = it[f.key];
+      const cell = statusKeys.has(f.key) ? statusBadge(v) : `<span style="font-family:var(--font-body)">${v}</span>`;
+      return `<td>${cell}</td>`;
+    }).join('')}${isAdmin ? `<td class="row-actions"><button class="icon-btn" onclick="openModal('${cat}','${it._id}')">Edit</button><button class="icon-btn danger" onclick="deleteItem('${cat}','${it._id}')">Delete</button></td>` : ''}</tr>`).join('')}</tbody></table>
+    ${items.length===0 ? '<div class="small-note">No records yet.</div>' : ''}
+  `;
+}
+
+/* ============================================================
+   SECTION RENDERERS
+   ============================================================ */
+function renderOverview(){
+  const machines = db.machines;
+  const active = machines.filter(m=>m.status==='Active').length;
+  const inRepair = machines.filter(m=>m.status==='In Repair').length;
+  const breakdown = machines.filter(m=>m.status==='Breakdown').length;
+  return `
+  <div class="grid grid-4" style="margin-bottom:16px;">
+    <div class="card stat-card"><div class="stat-label">Fleet Active</div><div class="stat-value green">${active}</div><div class="stat-delta">of ${machines.length} total units</div></div>
+    <div class="card stat-card"><div class="stat-label">In Workshop</div><div class="stat-value orange">${inRepair}</div><div class="stat-delta">${db.repairs.length} open jobs</div></div>
+    <div class="card stat-card"><div class="stat-label">Field Breakdowns</div><div class="stat-value red">${breakdown}</div><div class="stat-delta">live-tracked</div></div>
+    <div class="card stat-card"><div class="stat-label">Parts Inbound</div><div class="stat-value">${db.partsEta.filter(p=>p.status!=='Available').length}</div><div class="stat-delta">awaiting delivery</div></div>
+  </div>
+  <div class="grid grid-2">
+    <div class="card"><div class="panel-title">Field Breakdowns <span class="tag">live</span></div><div id="ov-field-feed"></div></div>
+    <div class="card"><div class="panel-title">Workshop Activity <span class="tag">live</span></div><div id="ov-workshop-feed"></div></div>
+  </div>
+  <div class="card" style="margin-top:14px;">
+    <div class="panel-title">Repair Queue Snapshot</div>
+    <table><thead><tr><th>Machine</th><th>Issue</th><th>Mechanic</th><th>Status</th><th>ETA</th></tr></thead>
+    <tbody>${db.repairs.map(r=>`<tr><td>${r.machine}</td><td style="font-family:var(--font-body)">${r.issue}</td><td>${r.mechanic}</td><td>${statusBadge(r.status)}</td><td style="font-family:var(--font-body)">${r.eta}</td></tr>`).join('')}</tbody></table>
+  </div>`;
+}
+function renderLogons(){ return `<div class="card"><div class="panel-title">System Accounts</div>${genericTable('logons')}</div>
+  <div class="small-note">Login accounts and permissions shown here are demo records. In production this connects to your identity provider (Azure AD / Okta / etc).</div>`; }
+
+function renderOperators(){
+  const addBtn = isAdmin ? `<div class="toolbar"><div></div><button class="btn small-btn" onclick="openModal('operators')">+ Add Operator</button></div>` : '';
+  return `${addBtn}
+  <div class="grid grid-3">${db.operators.map(o=>`
+    <div class="card profile-card">
+      <div class="avatar">${o.name.split(' ').map(n=>n[0]).join('')}</div>
+      <div>
+        <div class="profile-name">${o.name}</div>
+        <div class="profile-role">${o.role}</div>
+        <div class="profile-meta">Machine: ${o.machine}<br>Shift: ${o.shift}<br>License: ${o.license}<br>${o.years} yrs experience</div>
+      </div>
+      ${isAdmin ? `<div class="profile-actions"><button class="icon-btn" onclick="openModal('operators','${o._id}')">Edit</button><button class="icon-btn danger" onclick="deleteItem('operators','${o._id}')">×</button></div>` : ''}
+    </div>`).join('')}</div>`;
+}
+function renderMechanics(){
+  const addBtn = isAdmin ? `<div class="toolbar"><div></div><button class="btn small-btn" onclick="openModal('mechanics')">+ Add Mechanic</button></div>` : '';
+  return `${addBtn}
+  <div class="grid grid-3">${db.mechanics.map(m=>`
+    <div class="card profile-card">
+      <div class="avatar">${m.name.split(' ').map(n=>n[0]).join('')}</div>
+      <div>
+        <div class="profile-name">${m.name}</div>
+        <div class="profile-role">${m.spec}</div>
+        <div class="profile-meta">${statusBadge(m.status)}<br>${m.jobs ? 'Job: '+m.jobs : 'No active job'}</div>
+      </div>
+      ${isAdmin ? `<div class="profile-actions"><button class="icon-btn" onclick="openModal('mechanics','${m._id}')">Edit</button><button class="icon-btn danger" onclick="deleteItem('mechanics','${m._id}')">×</button></div>` : ''}
+    </div>`).join('')}</div>`;
+}
+function renderAssignments(){
+  return `<div class="card"><div class="panel-title">Mechanic → Job Assignments</div>
+    <table><thead><tr><th>Mechanic</th><th>Specialty</th><th>Assigned Job</th><th>Status</th></tr></thead>
+    <tbody>${db.mechanics.map(m=>`<tr><td>${m.name}</td><td style="font-family:var(--font-body)">${m.spec}</td><td style="font-family:var(--font-body)">${m.jobs||'—'}</td><td>${statusBadge(m.status)}</td></tr>`).join('')}</tbody></table>
+    <div class="small-note">Edit assignments from the Mechanic Profiles page.</div>
+  </div>`;
+}
+function renderFleetSelect(){
+  const addBtn = isAdmin ? `<div class="toolbar"><div></div><button class="btn small-btn" onclick="openModal('machines')">+ Add Machine</button></div>` : '';
+  return `${addBtn}
+  <div class="grid grid-4">${db.machines.map(m=>`
+    <div class="card machine-tile" data-mid="${m._id}">
+      ${isAdmin ? `<div class="machine-actions"><button class="icon-btn" onclick="event.stopPropagation(); openModal('machines','${m._id}')">Edit</button><button class="icon-btn danger" onclick="event.stopPropagation(); deleteItem('machines','${m._id}')">×</button></div>` : ''}
+      <div class="machine-id">${m.id}</div>
+      <div class="machine-type">${m.type}</div>
+      ${statusBadge(m.status)}
+      <div class="machine-row"><span>Hours</span><span>${Number(m.hours).toLocaleString()}</span></div>
+      <div class="machine-row"><span>Fuel</span><span>${m.fuel}%</span></div>
+      <div class="machine-row"><span>Operator</span><span>${m.operator}</span></div>
+    </div>`).join('')}</div>
+    <div class="card" id="fleet-detail" style="margin-top:16px; display:none;"></div>`;
+}
+function renderDestinations(){
+  return `<div class="card"><div class="panel-title">Destination Tracking</div>
+    <table><thead><tr><th>Machine</th><th>Current Destination</th><th>Status</th><th>Operator</th></tr></thead>
+    <tbody>${db.machines.map(m=>`<tr><td>${m.id}</td><td style="font-family:var(--font-body)">${m.dest}</td><td>${statusBadge(m.status)}</td><td>${m.operator}</td></tr>`).join('')}</tbody></table>
+    <div class="small-note">Edit destinations from the Fleet Selection page.</div>
+  </div>`;
+}
+function renderActiveHours(){
+  const max = Math.max(...db.machines.map(m=>Number(m.hours)||0), 1);
+  return `<div class="card"><div class="panel-title">Engine Active Hours</div>
+    ${db.machines.map(m=>`
+      <div style="margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px;">
+          <span style="font-family:var(--font-mono)">${m.id}</span><span style="font-family:var(--font-mono); color:var(--paper-dim)">${Number(m.hours).toLocaleString()} hrs</span>
+        </div>
+        <div style="background:var(--steel-800); height:8px; border-radius:4px; overflow:hidden;">
+          <div style="width:${(m.hours/max*100).toFixed(0)}%; height:100%; background:var(--safety-orange);"></div>
+        </div>
+      </div>`).join('')}
+    <div class="small-note">Edit hour readings from the Fleet Selection page.</div>
+  </div>`;
+}
+function renderRepairs(){
+  return `<div class="card"><div class="panel-title">Machine Repairs</div>${genericTable('repairs')}</div>`;
+}
+function renderPartsEta(){
+  return `<div class="card"><div class="panel-title">Parts En Route / On Order</div>${genericTable('partsEta')}</div>`;
+}
+function renderPartsLayout(){
+  const addBtn = isAdmin ? `<button class="btn small-btn" onclick="openModal('partsLayout')">+ Add Bay</button>` : '';
+  return `<div class="card">
+    <div class="toolbar"><div class="panel-title" style="margin-bottom:0;">Warehouse Bay Layout <span class="tag">stock level</span></div>${addBtn}</div>
+    <div class="warehouse-grid">${db.partsLayout.map(b=>`
+      <div class="bay ${b.level}" ${isAdmin ? `onclick="openModal('partsLayout','${b._id}')"` : ''}>
+        ${isAdmin ? `<button class="bay-del" onclick="event.stopPropagation(); deleteItem('partsLayout','${b._id}')">×</button>` : ''}
+        <div class="bay-code">${b.code}</div>
+        <div class="bay-level">${b.level==='ok'?'●●●':b.level==='mid'?'●●○':'●○○'}</div>
+        <div style="font-size:10px; color:var(--paper-dim); margin-top:4px;">${b.label}</div>
+      </div>`).join('')}</div>
+    <div class="small-note"><span style="color:var(--diesel-green)">●●●</span> well stocked &nbsp; <span style="color:var(--amber)">●●○</span> moderate &nbsp; <span style="color:var(--warn-red)">●○○</span> low stock, reorder.${isAdmin ? ' Click a bay to edit.' : ''}</div>
+  </div>`;
+}
+function renderFieldFeed(){
+  const addBtn = isAdmin ? `<button class="btn small-btn" onclick="openFeedModal('fieldFeed')">+ Log Event</button>` : '';
+  return `<div class="card">
+    <div class="toolbar"><div class="panel-title" style="margin-bottom:0;">Field Breakdowns <span class="tag">live feed</span></div>${addBtn}</div>
+    <div id="field-feed-list"></div></div>`;
+}
+function renderWorkshopFeed(){
+  const addBtn = isAdmin ? `<button class="btn small-btn" onclick="openFeedModal('workshopFeed')">+ Log Event</button>` : '';
+  return `<div class="card">
+    <div class="toolbar"><div class="panel-title" style="margin-bottom:0;">Internal Workshop Repairs <span class="tag">live feed</span></div>${addBtn}</div>
+    <div id="workshop-feed-list"></div></div>`;
+}
+function feedHTML(list, feedKey){
+  return list.map(f=>`<div class="feed-item"><div class="feed-time">${f.t}</div><div class="feed-dot ${f.color}"></div><div style="flex:1"><div class="feed-text">${f.text}</div><div class="feed-sub">${f.sub}</div></div>${isAdmin ? `<button class="icon-btn danger feed-del" onclick="deleteFeed('${feedKey}','${f._id}')">×</button>` : ''}</div>`).join('');
+}
+function renderPurchaseHistory(){
+  return `<div class="card"><div class="panel-title">Equipment Purchase History</div>${genericTable('purchaseHistory')}</div>`;
+}
+function renderFleetMap(){
+  const legend = [{c:'#4c9a6a', l:'Active'},{c:'#f2762e', l:'Workshop'},{c:'#9aa4ab', l:'Idle'},{c:'#d6544a', l:'Breakdown'}];
+  return `<div id="map-wrap"><svg id="map-svg" viewBox="0 0 640 460"></svg>
+    <div class="map-legend">${legend.map(l=>`<div class="legend-row"><span class="legend-dot" style="background:${l.c}"></span>${l.l}</div>`).join('')}</div></div>
+  <div class="small-note">Simulated GPS telemetry updating every few seconds. Connect a real telematics feed (Trimble, Product Link, etc.) to replace mock coordinates.</div>`;
+}
+function colorForStatus(s){ return {active:'#4c9a6a', workshop:'#f2762e', idle:'#9aa4ab', breakdown:'#d6544a'}[s] || '#9aa4ab'; }
+function drawMap(){
+  const svg = document.getElementById('map-svg');
+  if(!svg) return;
+  let grid = '';
+  for(let x=0;x<=640;x+=40) grid += `<line x1="${x}" y1="0" x2="${x}" y2="460" stroke="#2d363d" stroke-width="1"/>`;
+  for(let y=0;y<=460;y+=40) grid += `<line x1="0" y1="${y}" x2="640" y2="${y}" stroke="#2d363d" stroke-width="1"/>`;
+  const roads = `<path d="M40,380 C 200,350 300,200 600,80" stroke="#3c474f" stroke-width="10" fill="none" opacity="0.6"/>
+                 <path d="M60,60 C 180,150 260,300 560,400" stroke="#3c474f" stroke-width="8" fill="none" opacity="0.5"/>`;
+  const pins = machinePins.map(p=>{
+    const c = colorForStatus(p.status);
+    return `<g class="pin" data-id="${p.id}">
+      <circle cx="${p.x}" cy="${p.y}" r="10" fill="${c}" opacity="0.25"><animate attributeName="r" values="10;16;10" dur="2.4s" repeatCount="indefinite"/></circle>
+      <circle cx="${p.x}" cy="${p.y}" r="5.5" fill="${c}" stroke="#14181c" stroke-width="1.5"/>
+      <text x="${p.x+10}" y="${p.y-8}" class="map-pin-label">${p.id}</text>
+    </g>`;
+  }).join('');
+  svg.innerHTML = `<rect width="640" height="460" fill="#1b2126"/>${grid}${roads}${pins}`;
+}
+function jitterMap(){
+  machinePins.forEach(p=>{
+    if(p.status==='active'){
+      p.x = Math.min(620, Math.max(20, p.x + (Math.random()-0.5)*14));
+      p.y = Math.min(440, Math.max(20, p.y + (Math.random()-0.5)*14));
+    }
+  });
+  drawMap();
+}
+
+/* ============================================================
+   MOUNT
+   ============================================================ */
+const renderers = {
+  overview:renderOverview, logons:renderLogons, operators:renderOperators, mechanics:renderMechanics,
+  assignments:renderAssignments, 'fleet-select':renderFleetSelect, 'fleet-map':renderFleetMap,
+  destinations:renderDestinations, 'active-hours':renderActiveHours, repairs:renderRepairs,
+  'parts-eta':renderPartsEta, 'parts-layout':renderPartsLayout, 'field-feed':renderFieldFeed,
+  'workshop-feed':renderWorkshopFeed, 'purchase-history':renderPurchaseHistory,
+};
+
+function mountContent(){
+  const content = document.getElementById('content');
+  const banner = storageAvailable ? '' : `<div id="persist-banner" class="show">⚠ Can't reach the IronWatch backend at ${API_BASE} — showing local demo data. Edits won't be saved until the connection is restored. Check that the backend server is running.</div>`;
+  content.innerHTML = banner + Object.keys(renderers).map(id=>`<div class="section" id="sec-${id}">${renderers[id]()}</div>`).join('');
+
+  document.querySelectorAll('.machine-tile').forEach(t=>{
+    t.addEventListener('click', ()=>{
+      document.querySelectorAll('.machine-tile').forEach(x=>x.classList.remove('selected'));
+      t.classList.add('selected');
+      const m = db.machines.find(x=>x._id===t.dataset.mid);
+      const d = document.getElementById('fleet-detail');
+      d.style.display='block';
+      d.innerHTML = `<div class="panel-title">${m.id} — ${m.type}</div>
+        <div class="grid grid-4">
+          <div><div style="font-size:10.5px; text-transform:uppercase; color:var(--paper-dim)">Status</div>${statusBadge(m.status)}</div>
+          <div><div style="font-size:10.5px; text-transform:uppercase; color:var(--paper-dim)">Active Hours</div><div style="font-family:var(--font-mono)">${Number(m.hours).toLocaleString()}</div></div>
+          <div><div style="font-size:10.5px; text-transform:uppercase; color:var(--paper-dim)">Destination</div><div style="font-family:var(--font-mono)">${m.dest}</div></div>
+          <div><div style="font-size:10.5px; text-transform:uppercase; color:var(--paper-dim)">Fuel</div><div style="font-family:var(--font-mono)">${m.fuel}%</div></div>
+        </div>`;
+    });
+  });
+
+  refreshFeeds();
+  drawMap();
+  document.getElementById('active-count').textContent = db.machines.filter(m=>m.status==='Active').length;
+}
+function refreshFeeds(){
+  ['field-feed-list','ov-field-feed'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML = feedHTML(db.fieldFeed, 'fieldFeed'); });
+  ['workshop-feed-list','ov-workshop-feed'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML = feedHTML(db.workshopFeed, 'workshopFeed'); });
+}
+
+/* ============================================================
+   LIVE SIMULATION (adds sample activity automatically; all still editable/removable)
+   ============================================================ */
+const fieldEvents = [
+  {color:'red', text:'<b>DZ-115</b> hydraulic pressure warning at Site Charlie', sub:'Auto-flagged by telemetry'},
+  {color:'orange', text:'<b>EX-207</b> operator reported unusual vibration', sub:'Awaiting mechanic dispatch'},
+  {color:'green', text:'<b>GR-018</b> issue cleared after operator reset', sub:'Returned to active duty'},
+  {color:'red', text:'<b>LD-402</b> low tyre pressure alert', sub:'Site Bravo yard'},
+];
+const workshopEvents = [
+  {color:'orange', text:'<b>HL-330</b> accumulator replacement in progress', sub:'P. Fourie — Bay 2'},
+  {color:'green', text:'<b>GR-018</b> sensor diagnostics started', sub:'L. Steyn — Bay 4'},
+  {color:'orange', text:'Parts received: brake accumulator kit', sub:'Logged to Bay C1'},
+  {color:'green', text:'<b>EX-207</b> hose replacement completed, pressure-testing', sub:'C. Reyneke — Bay 3'},
+];
+function nowTime(){ const d=new Date(); return d.toTimeString().slice(0,5); }
+function pushLiveEvent(){
+  const fEv = fieldEvents[Math.floor(Math.random()*fieldEvents.length)];
+  db.fieldFeed.unshift({t:nowTime(), ...fEv, _id:uid()});
+  db.fieldFeed = db.fieldFeed.slice(0,12);
+  const wEv = workshopEvents[Math.floor(Math.random()*workshopEvents.length)];
+  db.workshopFeed.unshift({t:nowTime(), ...wEv, _id:uid()});
+  db.workshopFeed = db.workshopFeed.slice(0,12);
+  refreshFeeds();
+  markDirty();
+}
+
+function initApp(){
+  document.getElementById('footer-username').textContent = currentUsername;
+  const roleEl = document.getElementById('footer-role');
+  roleEl.textContent = isAdmin ? 'Administrator — full access' : 'Viewer — read only';
+  roleEl.style.color = isAdmin ? 'var(--safety-orange)' : 'var(--paper-dim)';
+  buildNav();
+  mountContent();
+  showSection('overview');
+  // Note: the automatic fake-event simulator (pushLiveEvent) is disabled now that
+  // this app writes to a real backend — leaving it on would keep inserting demo
+  // placeholder events into your real database every 12 seconds. Use the "+ Log
+  // Event" buttons for real entries, or call pushLiveEvent() / re-enable this
+  // line yourself if you still want the demo simulation.
+  setInterval(jitterMap, 3500);
+  setInterval(tickClock, 1000);
+  tickClock();
+}
+function tickClock(){
+  const d = new Date();
+  document.getElementById('clock').textContent = d.toLocaleDateString('en-ZA',{weekday:'short', day:'2-digit', month:'short'}) + '  ' + d.toTimeString().slice(0,8);
+}
+
+/* ============================================================
+   AI ASSISTANT — voice + nav
+   ============================================================ */
+const aiToggle = document.getElementById('ai-toggle');
+const aiChat = document.getElementById('ai-chat');
+const aiLog = document.getElementById('ai-chat-log');
+const aiMicStatus = document.getElementById('ai-mic-status');
+let recognizing = false;
+let recognition = null;
+
+function addMsg(role, text){
+  const m = document.createElement('div');
+  m.className = 'msg ' + role;
+  m.textContent = text;
+  aiLog.appendChild(m);
+  aiLog.scrollTop = aiLog.scrollHeight;
+}
+
+aiToggle.addEventListener('click', ()=>{
+  aiChat.classList.toggle('open');
+  if(aiChat.classList.contains('open') && aiLog.children.length===0){
+    addMsg('ai', "I'm the IRONWATCH assistant. Tap the mic and say something like \"open fleet map\" or \"how many breakdowns today\".");
+  }
+});
+
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+if(SpeechRec){
+  recognition = new SpeechRec();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = 'en-ZA';
+  recognition.onstart = ()=>{ recognizing=true; aiToggle.classList.add('listening'); aiMicStatus.textContent='listening…'; };
+  recognition.onend = ()=>{ recognizing=false; aiToggle.classList.remove('listening'); aiMicStatus.textContent='idle'; };
+  recognition.onerror = ()=>{ recognizing=false; aiToggle.classList.remove('listening'); aiMicStatus.textContent='mic error'; };
+  recognition.onresult = (e)=>{
+    const transcript = e.results[0][0].transcript;
+    addMsg('user', transcript);
+    handleAiCommand(transcript);
+  };
+} else {
+  aiMicStatus.textContent = 'voice not supported';
+}
+
+aiToggle.addEventListener('click', ()=>{
+  if(!recognition){ addMsg('ai','Voice recognition is not available in this browser. Try Chrome on desktop or Android.'); return; }
+  if(recognizing){ recognition.stop(); } else { try{ recognition.start(); }catch(err){} }
+});
+
+function speak(text){
+  if('speechSynthesis' in window){
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1.02; u.pitch = 1;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  }
+}
+
+const sectionKeywords = {
+  overview:['overview','dashboard','home','summary'], logons:['logon','login profiles','accounts','users'],
+  operators:['operator','operators'], mechanics:['mechanic profiles','mechanics'],
+  assignments:['assignment','assigned','job assignment'], 'fleet-select':['fleet selection','select a machine','choose machine'],
+  'fleet-map':['map','fleet map','tracking on map','gps'], destinations:['destination','where is','heading'],
+  'active-hours':['active hours','engine hours','hour meter'], repairs:['repair','repairs','machine repairs'],
+  'parts-eta':['parts eta','parts arriving','part eta'], 'parts-layout':['parts layout','warehouse','bay layout'],
+  'field-feed':['field breakdown','breakdowns','field feed'], 'workshop-feed':['workshop repairs','workshop feed','workshop activity'],
+  'purchase-history':['purchase history','purchases','equipment history'],
+};
+
+function handleAiCommand(raw){
+  const text = raw.toLowerCase();
+  if(text.includes('how many') && text.includes('breakdown')){
+    const n = db.machines.filter(m=>m.status==='Breakdown').length;
+    const reply = `There ${n===1?'is':'are'} currently ${n} machine${n===1?'':'s'} in breakdown status, plus ${db.fieldFeed.length} recent field alerts logged.`;
+    addMsg('ai', reply); speak(reply); return;
+  }
+  if(text.includes('active') && text.includes('machine')){
+    const n = db.machines.filter(m=>m.status==='Active').length;
+    const reply = `${n} of ${db.machines.length} machines are currently active in the field.`;
+    addMsg('ai', reply); speak(reply); showSection('fleet-select'); return;
+  }
+  if(text.includes('part') && (text.includes('eta') || text.includes('arriv'))){
+    showSection('parts-eta');
+    const reply = `Showing parts ETA. ${db.partsEta.filter(p=>p.status!=='Available').length} parts are still inbound.`;
+    addMsg('ai', reply); speak(reply); return;
+  }
+  for(const [sec, words] of Object.entries(sectionKeywords)){
+    if(words.some(w=>text.includes(w))){
+      showSection(sec);
+      const label = document.getElementById('page-title').textContent;
+      const reply = `Opening ${label}.`;
+      addMsg('ai', reply); speak(reply);
+      return;
+    }
+  }
+  const fallback = "I can navigate the dashboard or answer quick fleet questions. Try \"open fleet map\", \"show repairs\", or \"how many machines are active\".";
+  addMsg('ai', fallback); speak(fallback);
+}
+</script>
+</body>
+</html>
